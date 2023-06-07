@@ -53,7 +53,7 @@ async function run(): Promise<void> {
       ?.replace(/<!--[\s\S]*?-->/g, '')
       .split('\n')
       .filter(line => line.trim() !== '')
-      .join('\n')
+      .join('\n ')
 
     const today = new Date()
     const date = zeroPad(today.getDate())
