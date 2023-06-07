@@ -53,7 +53,7 @@ async function run(): Promise<void> {
       ?.replace(/<!--[\s\S]*?-->/g, '')
       .split('\n')
       .filter(line => line.trim() !== '')
-      .join('\n')
+      .join('')
 
     const today = new Date()
 
