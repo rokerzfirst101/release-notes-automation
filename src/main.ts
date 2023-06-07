@@ -10,6 +10,7 @@ async function run(): Promise<void> {
     const CLIENT_ID = core.getInput('client_id')
     const CLIENT_SECRET = core.getInput('client_secret')
     const REFRESH_TOKEN = core.getInput('refresh_token')
+    const PROJECT_ID = core.getInput('project_id')
     const GITHUB_TOKEN = core.getInput('github_token')
 
     const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET)
@@ -59,6 +60,7 @@ async function run(): Promise<void> {
     const releaseNotesBody = {
       isDraft: false,
       version: release.data.name,
+      projectId: PROJECT_ID,
       date: `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`,
       releaseNotes: latestReleaseNotes
     }
