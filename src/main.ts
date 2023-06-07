@@ -33,8 +33,6 @@ async function run(): Promise<void> {
     }
 
     const postResponse = await axios.post('https://api.eazyupdates.com/login', postBody)
-
-    console.log(postResponse)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
