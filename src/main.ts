@@ -66,7 +66,7 @@ async function run(): Promise<void> {
     }
 
     const releaseNotesCall = await axios.post(
-      `${BASE_URL}/release`,
+      `${BASE_URL}/release-notes`,
       releaseNotesBody,
       {
         headers: {
