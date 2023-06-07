@@ -10,6 +10,10 @@ inputs:
     required: true
   refresh_token:
     required: true
+  github_token:
+    required: true
+  project_id:
+    required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'
