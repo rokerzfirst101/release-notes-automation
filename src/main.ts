@@ -1,12 +1,16 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import {google} from 'googleapis'
 import axios from 'axios'
+
+const BASE_URL = 'https://api.staging.eazyupdates.com'
 
 async function run(): Promise<void> {
   try {
     const CLIENT_ID = core.getInput('client_id')
     const CLIENT_SECRET = core.getInput('client_secret')
     const REFRESH_TOKEN = core.getInput('refresh_token')
+    const GITHUB_TOKEN = core.getInput('github_token')
 
     const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET)
 
@@ -35,12 +39,41 @@ async function run(): Promise<void> {
       domain: DOMAIN
     }
 
-    const postResponse = await axios.post(
-      'https://api.eazyupdates.com/login',
-      postBody
+    const loginResponse = await axios.post(`${BASE_URL}/login`, postBody)
+
+    const eu_token = loginResponse.data.data.token
+
+    const octokit = github.getOctokit(GITHUB_TOKEN)
+
+    const {owner, repo} = github.context.repo
+    const release = await octokit.rest.repos.getLatestRelease({owner, repo})
+
+    const latestReleaseNotes = release.data.body
+      ?.replace(/<!--[\s\S]*?-->/g, '')
+      .split('\n')
+      .filter(line => line.trim() !== '')
+      .join('\n')
+
+    const today = new Date()
+
+    const releaseNotesBody = {
+      isDraft: false,
+      version: release.data.name,
+      date: `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`,
+      releaseNotes: latestReleaseNotes
+    }
+
+    const releaseNotesCall = await axios.post(
+      `${BASE_URL}/release`,
+      releaseNotesBody,
+      {
+        headers: {
+          Authorization: `Bearer ${eu_token}`
+        }
+      }
     )
 
-    core.setOutput('Output', postResponse.data)
+    core.setOutput('output', releaseNotesCall.data)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
