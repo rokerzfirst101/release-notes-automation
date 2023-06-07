@@ -8,7 +8,7 @@
       "project": "./tsconfig.json"
     },
     "rules": {
-      "no-console": ["error", { "allow": ["error"] }],
+      "no-console": ["error", { "allow": ["error", "log"] }],
       "i18n-text/no-en": "off",
       "eslint-comments/no-use": "off",
       "import/no-namespace": "off",

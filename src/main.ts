@@ -65,6 +65,8 @@ async function run(): Promise<void> {
       releaseNotes: latestReleaseNotes
     }
 
+    console.log(releaseNotesBody)
+
     const releaseNotesCall = await axios.post(
       `${BASE_URL}/release-notes`,
       releaseNotesBody,
