@@ -53,15 +53,18 @@ async function run(): Promise<void> {
       ?.replace(/<!--[\s\S]*?-->/g, '')
       .split('\n')
       .filter(line => line.trim() !== '')
-      .join('')
+      .join('\n')
 
     const today = new Date()
+    const date = zeroPad(today.getDate())
+    const month = zeroPad(today.getMonth() + 1)
+    const year = today.getFullYear()
 
     const releaseNotesBody = {
       isDraft: false,
       version: release.data.name,
-      projectId: PROJECT_ID,
-      date: `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`,
+      projectId: parseInt(PROJECT_ID),
+      date: `${year}-${month}-${date}`,
       releaseNotes: latestReleaseNotes
     }
 
@@ -92,6 +95,10 @@ async function run(): Promise<void> {
       core.setFailed(error.message)
     }
   }
+}
+
+function zeroPad(value: number): string {
+  return value < 10 ? `0${value}` : `${value}`
 }
 
 run()
