@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
 import {google} from 'googleapis'
 import axios from 'axios'
-import { profile } from 'console'
 
 async function run(): Promise<void> {
   try {
@@ -28,7 +27,7 @@ async function run(): Promise<void> {
       name: profileResponse.data.name,
       email: profileResponse.data.email,
       profileUrl: profileResponse.data.picture,
-      token: accessToken,
+      token: idToken,
       timezone: 'Asia/Calcutta',
       domain: DOMAIN
     }
