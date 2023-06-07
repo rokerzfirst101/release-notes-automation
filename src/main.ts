@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {google} from 'googleapis'
-import axios from 'axios'
+import axios, {isAxiosError} from 'axios'
 
 const BASE_URL = 'https://api.staging.eazyupdates.com'
 
@@ -77,7 +77,18 @@ async function run(): Promise<void> {
 
     core.setOutput('output', releaseNotesCall.data)
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      console.error('Error occurred:', error.message)
+      if (error.stack) {
+        console.error('Stack trace:', error.stack)
+      }
+      if (isAxiosError(error)) {
+        console.error('Error details:', error.response?.data)
+        console.error('HTTP status:', error.response?.status)
+        console.error('Headers:', error.response?.headers)
+      }
+      core.setFailed(error.message)
+    }
   }
 }
 
