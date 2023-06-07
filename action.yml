@@ -2,10 +2,14 @@ name: 'Your name here'
 description: 'Provide a description here'
 author: 'Your name or organization here'
 inputs:
-  milliseconds: # change this
+  client_id:
     required: true
     description: 'input description here'
     default: 'default value if applicable'
+  client_secret:
+    required: true
+  refresh_token:
+    required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'

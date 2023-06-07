@@ -1,16 +1,41 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {google} from 'googleapis'
+import axios from 'axios'
+import { profile } from 'console'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    const CLIENT_ID = core.getInput('client_id')
+    const CLIENT_SECRET = core.getInput('client_secret')
+    const REFRESH_TOKEN = core.getInput('refresh_token')
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET)
 
-    core.setOutput('time', new Date().toTimeString())
+    oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN })
+
+    const response = await oauth2Client.refreshAccessToken()
+    const accessToken = response.credentials.access_token
+    const idToken = response.credentials.id_token
+
+    const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    })
+
+    const emailParts = profileResponse.data.email.split('@')
+    const DOMAIN = emailParts.length > 1 ? emailParts[1] : 'zopsmart.com'
+
+    const postBody = {
+      name: profileResponse.data.name,
+      email: profileResponse.data.email,
+      profileUrl: profileResponse.data.picture,
+      token: accessToken,
+      timezone: 'Asia/Calcutta',
+      domain: DOMAIN
+    }
+
+    const postResponse = await axios.post('https://api.eazyupdates.com/login', postBody)
+
+    console.log(postResponse)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
