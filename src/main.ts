@@ -1,9 +1,9 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {google} from 'googleapis'
-import axios, {isAxiosError} from 'axios'
-
-const BASE_URL = 'https://api.staging.eazyupdates.com'
+import {isAxiosError} from 'axios'
+import * as utils from './utils'
+import {GoogleProvider} from './oauth'
+import * as EazyUpdatesAPI from './api/eazyupdates'
 
 async function run(): Promise<void> {
   try {
@@ -13,74 +13,43 @@ async function run(): Promise<void> {
     const PROJECT_ID = core.getInput('project_id')
     const GITHUB_TOKEN = core.getInput('github_token')
 
-    const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET)
-
-    oauth2Client.setCredentials({refresh_token: REFRESH_TOKEN})
-
-    const response = await oauth2Client.refreshAccessToken()
-    const accessToken = response.credentials.access_token
-    const idToken = response.credentials.id_token
-
-    const profileResponse = await axios.get(
-      'https://www.googleapis.com/oauth2/v1/userinfo',
-      {
-        headers: {Authorization: `Bearer ${accessToken}`}
-      }
+    const googleProvider = new GoogleProvider(
+      CLIENT_ID,
+      CLIENT_SECRET,
+      REFRESH_TOKEN
     )
+    const {idToken} = await googleProvider.getTokens()
 
-    const emailParts = profileResponse.data.email.split('@')
-    const DOMAIN = emailParts.length > 1 ? emailParts[1] : 'zopsmart.com'
+    const profile = await googleProvider.getProfile()
 
-    const postBody = {
-      name: profileResponse.data.name,
-      email: profileResponse.data.email,
-      profileUrl: profileResponse.data.picture,
+    const login = await EazyUpdatesAPI.funcs.login({
+      name: profile.name,
+      email: profile.email,
+      profileUrl: profile.picture,
       token: idToken,
       timezone: 'Asia/Calcutta',
-      domain: DOMAIN
-    }
+      domain: 'zopsmart.com'
+    })
 
-    const loginResponse = await axios.post(`${BASE_URL}/login`, postBody)
-
-    const eu_token = loginResponse.data.data.token
+    const eu_token = login.token ? login.token : ''
+    EazyUpdatesAPI.setAuthorizationHeader(eu_token)
 
     const octokit = github.getOctokit(GITHUB_TOKEN)
 
     const {owner, repo} = github.context.repo
     const release = await octokit.rest.repos.getLatestRelease({owner, repo})
 
-    const latestReleaseNotes = release.data.body
-      ?.replace(/<!--[\s\S]*?-->/g, '')
-      .split('\n')
-      .filter(line => line.trim() !== '')
-      .join('\n ')
-
-    const today = new Date()
-    const date = zeroPad(today.getDate())
-    const month = zeroPad(today.getMonth() + 1)
-    const year = today.getFullYear()
-
-    const releaseNotesBody = {
-      isDraft: false,
-      version: release.data.name,
-      projectId: parseInt(PROJECT_ID),
-      date: `${year}-${month}-${date}`,
-      releaseNotes: latestReleaseNotes
-    }
-
-    console.log(releaseNotesBody)
-
-    const releaseNotesCall = await axios.post(
-      `${BASE_URL}/release-notes`,
-      releaseNotesBody,
-      {
-        headers: {
-          Authorization: `Bearer ${eu_token}`
-        }
-      }
+    const formattedReleaseNotes = utils.processReleaseNotes(
+      release.data.body_text ? release.data.body_text : ''
     )
 
-    core.setOutput('output', releaseNotesCall.data)
+    await EazyUpdatesAPI.funcs.postReleaseNotes({
+      isDraft: false,
+      version: release.data.name ? release.data.name : '',
+      projectId: parseInt(PROJECT_ID),
+      date: utils.getFormattedDate(),
+      releaseNotes: formattedReleaseNotes
+    })
   } catch (error) {
     if (error instanceof Error) {
       console.error('Error occurred:', error.message)
@@ -95,10 +64,6 @@ async function run(): Promise<void> {
       core.setFailed(error.message)
     }
   }
-}
-
-function zeroPad(value: number): string {
-  return value < 10 ? `0${value}` : `${value}`
 }
 
 run()
